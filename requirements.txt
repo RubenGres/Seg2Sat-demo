@@ -3,3 +3,4 @@ accelerate
 Pillow
 flask
 flask_socketio
+flask_cors
