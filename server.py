@@ -7,9 +7,9 @@ import torch
 import time
 import threading
 
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_socketio import SocketIO, send, emit
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 if device.type != 'cuda':
@@ -46,7 +46,8 @@ images = []
 hint_image = Image.open("handdrawn.png")
 
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
+app.config['CORS_HEADERS'] = 'Content-Type'
 socketio = SocketIO(app, cors_allowed_origins="*")
 
 
@@ -124,10 +125,19 @@ def changePrompt():
 def getImage(id):
     return images[id]
 
-@app.get("/newHint")
+@app.route("/newHint", methods=['POST'])
+@cross_origin()
 def submitSegmentation():
-    hint_b64 = request.args.get('hint')
+    global hint_image
+    
+    data = request.get_json()
+    hint_b64 = data.get('hint')
+    
     hint_image = decode_base64_image(hint_b64)
+    
+    hint_image.save("hint.png")
+
+    return jsonify({'message': 'Hint received'}), 200
 
 if __name__ == '__main__':
     socketio.start_background_task(background_image_generation, )
